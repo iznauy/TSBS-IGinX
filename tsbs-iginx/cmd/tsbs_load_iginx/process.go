@@ -19,12 +19,15 @@ type processor struct {
 }
 
 func (p *processor) Init(numWorker int, _, _ bool) {
-	//if numWorker%2 == 0 {
-	//	p.session = client.NewSession("172.16.17.21", "6888", "root", "root")
-	//} else if numWorker%2 == 1 {
-	//	p.session = client.NewSession("172.16.17.23", "6888", "root", "root")
-	//}
-	p.session = client.NewSession("172.16.17.21", "6777", "root", "root")
+	if numWorker%4 == 0 {
+		p.session = client.NewSession("172.16.17.21", "6777", "root", "root")
+	} else if numWorker%4 == 1 {
+		p.session = client.NewSession("172.16.17.22", "6777", "root", "root")
+	} else if numWorker%4 == 1 {
+		p.session = client.NewSession("172.16.17.23", "6777", "root", "root")
+	} else {
+		p.session = client.NewSession("172.16.17.24", "6777", "root", "root")
+	}
 	if err := p.session.Open(); err != nil {
 		log.Fatal(err)
 	}
