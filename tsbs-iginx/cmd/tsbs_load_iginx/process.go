@@ -24,13 +24,16 @@ func (p *processor) Init(numWorker int, _, _ bool) {
 	//} else if numWorker%2 == 1 {
 	//	p.session = client.NewSession("172.16.17.23", "6888", "root", "root")
 	//}
-	p.session = client.NewSession("172.16.17.21", "6888", "root", "root")
+	p.session = client.NewSession("127.0.0.1", "6880", "root", "root")
 	if err := p.session.Open(); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func (p *processor) Close(_ bool) {
+	if err := p.session.Close(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func run(done chan int, startTime int64, lines *[]string) {
@@ -151,9 +154,9 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 		sec := strings.Split(tmp[1], ",")
 		for j := 0; j < len(sec); j++ {
 			kv := strings.Split(sec[j], "=")
-			onePath := device+"."+kv[0]
+			onePath := device + "." + kv[0]
 			onePath = strings.Replace(onePath, "-", "_", -1)
-			if !in(onePath, path){
+			if !in(onePath, path) {
 				path = append(path, onePath)
 				v, err := strconv.ParseFloat(kv[1], 32)
 				if err != nil {
@@ -188,10 +191,9 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 	return metricCnt, uint64(rowCnt)
 }
 
-
 func in(target string, strArray []string) bool {
-	for _, element := range strArray{
-		if target == element{
+	for _, element := range strArray {
+		if target == element {
 			return true
 		}
 	}
