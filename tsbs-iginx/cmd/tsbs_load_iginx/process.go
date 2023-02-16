@@ -23,7 +23,7 @@ func (p *processor) Init(numWorker int, _, _ bool) {
 		p.session = client.NewSession("172.16.17.21", "6777", "root", "root")
 	} else if numWorker%4 == 1 {
 		p.session = client.NewSession("172.16.17.22", "6777", "root", "root")
-	} else if numWorker%4 == 1 {
+	} else if numWorker%4 == 2 {
 		p.session = client.NewSession("172.16.17.23", "6777", "root", "root")
 	} else {
 		p.session = client.NewSession("172.16.17.24", "6777", "root", "root")
