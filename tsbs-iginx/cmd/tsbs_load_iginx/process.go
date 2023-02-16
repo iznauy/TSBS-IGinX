@@ -24,7 +24,7 @@ func (p *processor) Init(numWorker int, _, _ bool) {
 	//} else if numWorker%2 == 1 {
 	//	p.session = client.NewSession("172.16.17.23", "6888", "root", "root")
 	//}
-	p.session = client.NewSession("127.0.0.1", "6880", "root", "root")
+	p.session = client.NewSession("172.16.17.21", "6880", "root", "root")
 	if err := p.session.Open(); err != nil {
 		log.Fatal(err)
 	}
