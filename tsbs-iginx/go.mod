@@ -14,6 +14,7 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/google/flatbuffers v1.11.0
 	github.com/google/go-cmp v0.5.2
+	github.com/iznauy/IGinX-client-go v0.0.0-20230220010849-3cb4bea0b6cd
 	github.com/jackc/pgx/v4 v4.8.0
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5
 	github.com/kshvakov/clickhouse v1.3.11
@@ -23,7 +24,6 @@ require (
 	github.com/shirou/gopsutil v3.21.3+incompatible
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
-	github.com/thulab/iginx-client-go v0.0.0-20221025012354-2745eb95f920
 	github.com/timescale/promscale v0.0.0-20201006153045-6a66a36f5c84
 	github.com/transceptor-technology/go-qpack v0.0.0-20190116123619-49a14b216a45
 	github.com/valyala/fasthttp v1.15.1

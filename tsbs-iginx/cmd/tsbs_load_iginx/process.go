@@ -2,32 +2,60 @@ package main
 
 import (
 	"fmt"
-	"github.com/thulab/iginx-client-go/client"
-	"github.com/thulab/iginx-client-go/rpc"
+	"github.com/iznauy/IGinX-client-go/client_v2"
+	"github.com/iznauy/IGinX-client-go/rpc"
 	"github.com/timescale/tsbs/pkg/targets"
 	"log"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
 )
 
 // allows for testing
-var printFn = fmt.Printf
+var (
+	printFn              = fmt.Printf
+	connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
+)
 
 type processor struct {
-	session *client.Session
+	session *client_v2.Session
 }
 
-func (p *processor) Init(numWorker int, _, _ bool) {
-	if numWorker%4 == 0 {
-		p.session = client.NewSession("172.16.17.21", "6777", "root", "root")
-	} else if numWorker%4 == 1 {
-		p.session = client.NewSession("172.16.17.22", "6777", "root", "root")
-	} else if numWorker%4 == 2 {
-		p.session = client.NewSession("172.16.17.23", "6777", "root", "root")
-	} else {
-		p.session = client.NewSession("172.16.17.24", "6777", "root", "root")
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func shuffle(nums []int) []int {
+	for i := len(nums); i > 0; i-- {
+		last := i - 1
+		idx := rand.Intn(i)
+		nums[last], nums[idx] = nums[idx], nums[last]
 	}
+	return nums
+}
+
+func (p *processor) Init(_ int, _, _ bool) {
+	connectionStrings := ""
+	numbers := make([]int, 0, len(connectionStringList))
+	for i := 0; i < len(connectionStringList); i++ {
+		numbers = append(numbers, i)
+	}
+	numbers = shuffle(numbers)
+	for i := 0; i < len(numbers); i++ {
+		if i > 0 {
+			connectionStrings += ","
+		}
+		connectionStrings += connectionStringList[numbers[i]]
+	}
+
+	settings, err := client_v2.NewSessionSettings(connectionStrings)
+	if err != nil {
+		fmt.Println(err)
+		log.Fatal(err)
+	}
+
+	p.session = client_v2.NewSession(settings)
 	if err := p.session.Open(); err != nil {
 		log.Fatal(err)
 	}
@@ -36,22 +64,6 @@ func (p *processor) Init(numWorker int, _, _ bool) {
 func (p *processor) Close(_ bool) {
 	if err := p.session.Close(); err != nil {
 		log.Fatal(err)
-	}
-}
-
-func run(done chan int, startTime int64, lines *[]string) {
-	for {
-		select {
-		case <-done:
-			done <- 1
-			break
-		default:
-		}
-
-		if (time.Now().Unix() - startTime) > 10000 {
-			log.Println(lines)
-			break
-		}
 	}
 }
 
@@ -181,17 +193,11 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 
 	timestamps := []int64{timestamp}
 
-	//c := make(chan int, 1000)
-	//sqlChan := make(chan string, 1000)
-	//sqlChan <- batch.buf.String()
-	//go p.logWithTimeout(c, 10*time.Second, sqlChan)
-
 	err := p.session.InsertColumnRecords(path, timestamps, values, types, tagsList)
 	if err != nil {
 		log.Println(err)
 		panic(err)
 	}
-	//c <- 1
 
 	metricCnt := batch.metrics
 	rowCnt := batch.rows
