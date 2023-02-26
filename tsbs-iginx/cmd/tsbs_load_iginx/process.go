@@ -17,6 +17,10 @@ var (
 	printFn = fmt.Printf
 	//connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
 	connectionStringList = []string{"127.0.0.1:6888"}
+
+	defaultTruck = "unknown"
+	defaultTagK  = []string{"fleet", "driver", "model", "device_version"}
+	defaultTagV  = []string{"unknown", "unknown", "unknown", "unknown"}
 )
 
 type processor struct {
@@ -135,27 +139,49 @@ func (p *processor) logWithTimeout(doneChan chan int, timeout time.Duration, sql
 	}
 }
 
+func formatName(name string) string {
+	parts := strings.Split(name, "_")
+	truck := parts[0]
+	index, _ := strconv.Atoi(parts[1])
+	return fmt.Sprintf("%s_%04d", truck, index)
+}
+
 func parseMeasurementAndValues(measurement string, fields string) ([]string, []float64) {
 	var paths []string
 	var values []float64
 
-	measurement = "type=" + measurement
 	fir := strings.Split(measurement, ",")
 	device := fir[0] + "."
-	for j := 1; j < len(fir); j++ {
-		kv := strings.Split(fir[j], "=")
-		device += strings.Replace(kv[1], ".", "_", -1)
+	if !strings.Contains(fir[1], "truck") {
+		device += defaultTruck
 		device += "."
-		device = strings.Replace(device, "-", "_", -1)
+		fir = fir[1:]
+	} else {
+		device += formatName(strings.Split(fir[1], "=")[1])
+		device += "."
+		fir = fir[2:]
 	}
 
-	device = device[5 : len(device)-1]
+	index := 0
+	for j := 0; j < len(defaultTagK); j++ {
+		if index < len(fir) {
+			kv := strings.Split(fir[index], "=")
+			if defaultTagK[j] == kv[0] {
+				device += strings.Replace(kv[1], ".", "_", -1)
+				device += "."
+				index++
+				continue
+			}
+		}
+		device += defaultTagV[j]
+		device += "."
+	}
 	device = strings.Replace(device, "-", "_", -1)
 
 	sec := strings.Split(fields, ",")
 	for j := 0; j < len(sec); j++ {
 		kv := strings.Split(sec[j], "=")
-		path := device + "." + kv[0]
+		path := device + kv[0]
 		path = strings.Replace(path, "-", "_", -1)
 
 		v, err := strconv.ParseFloat(kv[1], 32)
@@ -201,7 +227,6 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 		if _, ok := timestampIndices[timestamp]; !ok {
 			timestampIndices[timestamp] = len(timestamps)
 			timestamps = append(timestamps, timestamp)
-			fmt.Println(timestamp)
 		}
 	}
 
