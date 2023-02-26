@@ -14,8 +14,9 @@ import (
 
 // allows for testing
 var (
-	printFn              = fmt.Printf
-	connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
+	printFn = fmt.Printf
+	//connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
+	connectionStringList = []string{"127.0.0.1:6888"}
 )
 
 type processor struct {
@@ -36,17 +37,19 @@ func shuffle(nums []int) []int {
 }
 
 func (p *processor) Init(_ int, _, _ bool) {
-	connectionStrings := ""
-	numbers := make([]int, 0, len(connectionStringList))
-	for i := 0; i < len(connectionStringList); i++ {
-		numbers = append(numbers, i)
-	}
-	numbers = shuffle(numbers)
-	for i := 0; i < len(numbers); i++ {
-		if i > 0 {
-			connectionStrings += ","
+	connectionStrings := connectionStringList[0]
+	if len(connectionStringList) > 1 {
+		numbers := make([]int, 0, len(connectionStringList))
+		for i := 0; i < len(connectionStringList); i++ {
+			numbers = append(numbers, i)
 		}
-		connectionStrings += connectionStringList[numbers[i]]
+		numbers = shuffle(numbers)
+		for i := 0; i < len(numbers); i++ {
+			if i > 0 {
+				connectionStrings += ","
+			}
+			connectionStrings += connectionStringList[numbers[i]]
+		}
 	}
 
 	settings, err := client_v2.NewSessionSettings(connectionStrings)
@@ -132,6 +135,39 @@ func (p *processor) logWithTimeout(doneChan chan int, timeout time.Duration, sql
 	}
 }
 
+func parseMeasurementAndValues(measurement string, fields string) ([]string, []float64) {
+	var paths []string
+	var values []float64
+
+	measurement = "type=" + measurement
+	fir := strings.Split(measurement, ",")
+	device := fir[0] + "."
+	for j := 1; j < len(fir); j++ {
+		kv := strings.Split(fir[j], "=")
+		device += strings.Replace(kv[1], ".", "_", -1)
+		device += "."
+		device = strings.Replace(device, "-", "_", -1)
+	}
+
+	device = device[5 : len(device)-1]
+	device = strings.Replace(device, "-", "_", -1)
+
+	sec := strings.Split(fields, ",")
+	for j := 0; j < len(sec); j++ {
+		kv := strings.Split(sec[j], "=")
+		path := device + "." + kv[0]
+		path = strings.Replace(path, "-", "_", -1)
+
+		v, err := strconv.ParseFloat(kv[1], 32)
+		if err != nil {
+			log.Fatal(err)
+		}
+		paths = append(paths, path)
+		values = append(values, v)
+	}
+	return paths, values
+}
+
 func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) {
 	batch := b.(*batch)
 
@@ -143,62 +179,58 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 	lines := strings.Split(batch.buf.String(), "\n")
 	lines = lines[0 : len(lines)-1]
 
-	var path []string
-	var timestamp int64
+	var paths []string
+	var timestamps []int64
+	var timestampIndices = make(map[int64]int)
 	var values [][]interface{}
 	var types []rpc.DataType
-	var tagsList []map[string]string
+	var pathIndices = make(map[string]int)
 
-	i := 0
-	for i = 0; i < len(lines); i++ {
-		var tag map[string]string
-		tag = make(map[string]string)
-		tmp := strings.Split(lines[i], " ")
-		tmp[0] = "type=" + tmp[0]
-		fir := strings.Split(tmp[0], ",")
-		device := fir[0] + "."
-		for j := 1; j < len(fir); j++ {
-			kv := strings.Split(fir[j], "=")
-			if kv[0] == "name" || kv[0] == "fleet" {
-				device += kv[1]
-				device += "."
-			} else {
-				tag[kv[0]] = strings.Replace(kv[1], ".", "_", -1)
-				tag[kv[0]] = strings.Replace(tag[kv[0]], "-", "_", -1)
+	for _, line := range lines {
+		parts := strings.Split(line, " ")
+		subPaths, _ := parseMeasurementAndValues(parts[0], parts[1])
+		for _, subPath := range subPaths {
+			if _, ok := pathIndices[subPath]; ok {
+				continue
 			}
+			pathIndices[subPath] = len(paths)
+			paths = append(paths, subPath)
+			types = append(types, rpc.DataType_DOUBLE)
 		}
-
-		timestamp, _ = strconv.ParseInt(tmp[2], 10, 64)
-		timestamp /= 1000000
-		device = device[5 : len(device)-1]
-		device = strings.Replace(device, "-", "_", -1)
-
-		sec := strings.Split(tmp[1], ",")
-		for j := 0; j < len(sec); j++ {
-			kv := strings.Split(sec[j], "=")
-			onePath := device + "." + kv[0]
-			onePath = strings.Replace(onePath, "-", "_", -1)
-			if !in(onePath, path) {
-				path = append(path, onePath)
-				v, err := strconv.ParseFloat(kv[1], 32)
-				if err != nil {
-					log.Fatal(err)
-				}
-				values = append(values, []interface{}{v})
-				types = append(types, rpc.DataType_DOUBLE)
-				tagsList = append(tagsList, tag)
-			}
+		timestamp, _ := strconv.ParseInt(parts[2], 10, 64)
+		if _, ok := timestampIndices[timestamp]; !ok {
+			timestampIndices[timestamp] = len(timestamps)
+			timestamps = append(timestamps, timestamp)
+			fmt.Println(timestamp)
 		}
 	}
 
-	timestamps := []int64{timestamp}
+	for range paths {
+		values = append(values, make([]interface{}, len(timestamps), len(timestamps)))
+	}
 
-	err := p.session.InsertColumnRecords(path, timestamps, values, types, tagsList)
+	for _, line := range lines {
+		secondIndex := 0
+		parts := strings.Split(line, " ")
+		timestamp, _ := strconv.ParseInt(parts[2], 10, 64)
+		for i := range timestamps {
+			if timestamps[i] == timestamp {
+				secondIndex = i
+				break
+			}
+		}
+		subPaths, subValues := parseMeasurementAndValues(parts[0], parts[1])
+		for i, subPath := range subPaths {
+			firstIndex := pathIndices[subPath]
+			values[firstIndex][secondIndex] = subValues[i]
+		}
+	}
+
+	err := p.session.InsertNonAlignedColumnRecords(paths, timestamps, values, types, nil)
 	if err != nil {
 		log.Println(err)
 		panic(err)
 	}
-
 	metricCnt := batch.metrics
 	rowCnt := batch.rows
 

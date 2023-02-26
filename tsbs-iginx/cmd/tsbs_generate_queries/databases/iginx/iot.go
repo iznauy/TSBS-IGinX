@@ -54,6 +54,7 @@ func (i *IoT) LastLocByTruck(qi query.Query, nTrucks int) {
 
 	humanLabel := "Iginx last location by specific truck"
 	humanDesc := fmt.Sprintf("%s: random %4d trucks", humanLabel, nTrucks)
+	fmt.Printf("query: %s\n", iginxql)
 
 	i.fillInQuery(qi, humanLabel, humanDesc, iginxql)
 }
