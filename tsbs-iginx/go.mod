@@ -14,7 +14,7 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/google/flatbuffers v1.11.0
 	github.com/google/go-cmp v0.5.2
-	github.com/iznauy/IGinX-client-go v0.0.0-20230226023306-4df083ea62a4
+	github.com/iznauy/IGinX-client-go v0.0.0-20230228072758-1fa8418b4938
 	github.com/jackc/pgx/v4 v4.8.0
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5
 	github.com/kshvakov/clickhouse v1.3.11

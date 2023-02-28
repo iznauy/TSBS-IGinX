@@ -58,7 +58,7 @@ func (c BenchmarkRunnerConfig) AddToFlagSet(fs *pflag.FlagSet) {
 	fs.Bool("do-load", true, "Whether to write data. Set this flag to false to check input read speed.")
 	fs.Bool("do-create-db", true, "Whether to create the database. Disable on all but one client if running on a multi client setup.")
 	fs.Bool("do-abort-on-exist", false, "Whether to abort if a database with the given name already exists.")
-	fs.Duration("reporting-period", 10*time.Second, "Period to report write stats")
+	fs.Duration("reporting-period", 1*time.Second, "Period to report write stats")
 	fs.String("file", "", "File name to read data from")
 	fs.Int64("seed", 0, "PRNG seed (default: 0, which uses the current timestamp)")
 	fs.String("insert-intervals", "", "Time to wait between each insert, default '' => all workers insert ASAP. '1,2' = worker 1 waits 1s between inserts, worker 2 and others wait 2s")

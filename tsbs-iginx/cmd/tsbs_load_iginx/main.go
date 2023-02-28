@@ -50,7 +50,7 @@ func init() {
 	pflag.CommandLine.Int64("limit", 0, "Number of items to insert (0 = all of them).")
 	pflag.CommandLine.Bool("do-load", true, "Whether to write data. Set this flag to false to check input read speed.")
 	pflag.CommandLine.Bool("no-flow-control", false, "Whether to use flow control. Set this flag to false to load all data first.")
-	pflag.CommandLine.Duration("reporting-period", 10*time.Second, "Period to report write stats")
+	pflag.CommandLine.Duration("reporting-period", 3*time.Second, "Period to report write stats")
 	pflag.CommandLine.String("file", "/home/humanfy/tmp_data", "File name to read data from")
 	pflag.CommandLine.Int64("seed", 0, "PRNG seed (default: 0, which uses the current timestamp)")
 	pflag.CommandLine.Uint64("channel-capacity", 100000, "Channel capacity")

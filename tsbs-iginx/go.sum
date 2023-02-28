@@ -510,6 +510,8 @@ github.com/iznauy/IGinX-client-go v0.0.0-20230226010333-33d35a7609f6 h1:ekzgyQl9
 github.com/iznauy/IGinX-client-go v0.0.0-20230226010333-33d35a7609f6/go.mod h1:X6zkmUsvcQ5bgq6RjAaY+82YQGGCeI2Ev7wxzwDmtMs=
 github.com/iznauy/IGinX-client-go v0.0.0-20230226023306-4df083ea62a4 h1:Xd19E85KFFTuwjK7ivjl0tT0/x9PuQOxy4rYJ0sMSjs=
 github.com/iznauy/IGinX-client-go v0.0.0-20230226023306-4df083ea62a4/go.mod h1:X6zkmUsvcQ5bgq6RjAaY+82YQGGCeI2Ev7wxzwDmtMs=
+github.com/iznauy/IGinX-client-go v0.0.0-20230228072758-1fa8418b4938 h1:MfniQeApS8vVoY0AFqEyfM+7zWs9NWoAYmFgPssFovY=
+github.com/iznauy/IGinX-client-go v0.0.0-20230228072758-1fa8418b4938/go.mod h1:X6zkmUsvcQ5bgq6RjAaY+82YQGGCeI2Ev7wxzwDmtMs=
 github.com/jackc/chunkreader v1.0.0 h1:4s39bBR8ByfqH+DKm8rQA3E1LHZWB9XWcrz8fqaZbe0=
 github.com/jackc/chunkreader v1.0.0/go.mod h1:RT6O25fNZIuasFJRyZ4R/Y2BbhasbmZXF9QQ7T3kePo=
 github.com/jackc/chunkreader/v2 v2.0.0/go.mod h1:odVSm741yZoC3dpHEUXIqA9tQRhFrgOHwnPIn9lDKlk=

@@ -249,7 +249,14 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 		}
 	}
 
-	err := p.session.InsertNonAlignedColumnRecords(paths, timestamps, values, types, nil)
+	var err error
+	for i := 0; i < 3; i++ {
+		err = p.session.InsertNonAlignedColumnRecords(paths, timestamps, values, types, nil)
+		if err == nil {
+			break
+		}
+		log.Printf("err = %v, retry time = %d", err, i+1)
+	}
 	metricCnt := batch.metrics
 	rowCnt := batch.rows
 
@@ -257,7 +264,7 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 	batch.buf.Reset()
 	bufPool.Put(batch.buf)
 	if err != nil {
-		log.Println(err)
+		log.Printf("after retry, we still has some error: %v\n", err)
 		return 0, 0
 	}
 	return metricCnt, uint64(rowCnt)
