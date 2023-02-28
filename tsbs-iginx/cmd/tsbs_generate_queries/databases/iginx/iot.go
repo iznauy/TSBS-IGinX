@@ -49,7 +49,7 @@ func (i *IoT) getTruckWhereString(nTrucks int) string {
 
 // LastLocByTruck finds the truck location for nTrucks.
 func (i *IoT) LastLocByTruck(qi query.Query, nTrucks int) {
-	iginxql := fmt.Sprintf("SELECT last(longitude), last(latitude) FROM readings.%s.*.*.*",
+	iginxql := fmt.Sprintf("SELECT last(longitude), last(latitude) FROM readings.%s.*.*.*.*",
 		i.getTruckWhereString(nTrucks))
 
 	humanLabel := "Iginx last location by specific truck"
@@ -61,9 +61,8 @@ func (i *IoT) LastLocByTruck(qi query.Query, nTrucks int) {
 
 // LastLocPerTruck finds all the truck locations along with truck and driver names.
 func (i *IoT) LastLocPerTruck(qi query.Query) {
-	iginxql := fmt.Sprintf("SELECT last(longitude), last(latitude) FROM readings.*.%s.*.*",
-		i.GetRandomFleet())
-
+	//iginxql := "SELECT last(longitude), last(latitude) FROM readings.*.*.*.*.*"
+	iginxql := "select a.longitude as longitude, b.latitude as latitude, a.truck as truck from (select truck, last_value(value) as longitude from (select transposition(*) from (select latitude, longitude from readings.*.*.*.*.*)) group by truck, name having name = 'longitude') as a, (select truck, last_value(value) as latitude from (select transposition(*) from (select latitude, longitude from readings.*.*.*.*.*)) group by truck, name having name = 'latitude') as b where a.truck = b.truck"
 	humanLabel := "Iginx last location per truck"
 	humanDesc := humanLabel
 
@@ -72,7 +71,7 @@ func (i *IoT) LastLocPerTruck(qi query.Query) {
 
 // TrucksWithLowFuel finds all trucks with low fuel (less than 10%).
 func (i *IoT) TrucksWithLowFuel(qi query.Query) {
-	iginxql := fmt.Sprintf("SELECT fuel_state FROM diagnostics.*.%s.* where fuel_state <= 0.1",
+	iginxql := fmt.Sprintf("select truck, last_value(value) as fuel from (select transposition(fuel_state) from diagnostics.*.%s.*.*.*) group by truck having last_value(value) < 0.1;",
 		i.GetRandomFleet())
 
 	humanLabel := "Iginx trucks with low fuel"
@@ -84,8 +83,9 @@ func (i *IoT) TrucksWithLowFuel(qi query.Query) {
 // TrucksWithHighLoad finds all trucks that have load over 90%.
 func (i *IoT) TrucksWithHighLoad(qi query.Query) {
 	// not all implemented limited by iginx sql grammar
-	iginxql := fmt.Sprintf("SELECT current_load, load_capacity FROM diagnostics.*.%s.*",
-		i.GetRandomFleet())
+	fleet := i.GetRandomFleet()
+	iginxql := fmt.Sprintf("select a.curr_load as load, a.truck as truck, b.capacity as capacity from (select truck, last_value(value) as curr_load from (select transposition(*) from diagnostics.*.%s.*.*.*) group by name, truck having name = 'current_load') as a, (select truck, last_value(value) as capacity from (select transposition(*) from diagnostics.*.%s.*.*.*) group by name, truck having name = 'load_capacity') as b where a.truck = b.truck",
+		fleet, fleet)
 
 	humanLabel := "Iginx trucks with high load"
 	humanDesc := fmt.Sprintf("%s: over 90 percent", humanLabel)
@@ -135,7 +135,7 @@ func (i *IoT) TrucksWithLongDailySessions(qi query.Query) {
 
 // AvgVsProjectedFuelConsumption calculates average and projected fuel consumption per fleet.
 func (i *IoT) AvgVsProjectedFuelConsumption(qi query.Query) {
-	iginxql := fmt.Sprintf("SELECT AVG(fuel_consumption) FROM readings.*.%s.*", i.GetRandomFleet())
+	iginxql := fmt.Sprintf("select sum(fuel_consumption) from readings.*.*.*.*.* agg level = 2")
 
 	humanLabel := "Iginx average vs projected fuel consumption per fleet"
 	humanDesc := humanLabel
@@ -167,7 +167,7 @@ func (i *IoT) AvgDailyDrivingSession(qi query.Query) {
 
 // AvgLoad finds the average load per truck model per fleet.
 func (i *IoT) AvgLoad(qi query.Query) {
-	iginxql := fmt.Sprintf("SELECT AVG(current_load) FROM diagnostics.*.%s.*", i.GetRandomFleet())
+	iginxql := fmt.Sprintf("select avg(current_load) from diagnostics.*.*.*.*.* agg level=1,2")
 
 	humanLabel := "Iginx average load per truck model per fleet"
 	humanDesc := humanLabel

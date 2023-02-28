@@ -23,6 +23,7 @@ import (
 var (
 	runner               *query.BenchmarkRunner
 	connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
+	//connectionStringList = []string{"127.0.0.1:6888"}
 )
 
 // Parse args:

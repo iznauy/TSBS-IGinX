@@ -14,9 +14,9 @@ import (
 
 // allows for testing
 var (
-	printFn = fmt.Printf
-	//connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
-	connectionStringList = []string{"127.0.0.1:6888"}
+	printFn              = fmt.Printf
+	connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
+	//connectionStringList = []string{"127.0.0.1:6888"}
 
 	defaultTruck = "unknown"
 	defaultTagK  = []string{"fleet", "driver", "model", "device_version"}
@@ -41,19 +41,17 @@ func shuffle(nums []int) []int {
 }
 
 func (p *processor) Init(_ int, _, _ bool) {
-	connectionStrings := connectionStringList[0]
-	if len(connectionStringList) > 1 {
-		numbers := make([]int, 0, len(connectionStringList))
-		for i := 0; i < len(connectionStringList); i++ {
-			numbers = append(numbers, i)
+	connectionStrings := ""
+	numbers := make([]int, 0, len(connectionStringList))
+	for i := 0; i < len(connectionStringList); i++ {
+		numbers = append(numbers, i)
+	}
+	numbers = shuffle(numbers)
+	for i := 0; i < len(numbers); i++ {
+		if i > 0 {
+			connectionStrings += ","
 		}
-		numbers = shuffle(numbers)
-		for i := 0; i < len(numbers); i++ {
-			if i > 0 {
-				connectionStrings += ","
-			}
-			connectionStrings += connectionStringList[numbers[i]]
-		}
+		connectionStrings += connectionStringList[numbers[i]]
 	}
 
 	settings, err := client_v2.NewSessionSettings(connectionStrings)
@@ -252,24 +250,15 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 	}
 
 	err := p.session.InsertNonAlignedColumnRecords(paths, timestamps, values, types, nil)
-	if err != nil {
-		log.Println(err)
-		panic(err)
-	}
 	metricCnt := batch.metrics
 	rowCnt := batch.rows
 
 	// Return the batch buffer to the pool.
 	batch.buf.Reset()
 	bufPool.Put(batch.buf)
-	return metricCnt, uint64(rowCnt)
-}
-
-func in(target string, strArray []string) bool {
-	for _, element := range strArray {
-		if target == element {
-			return true
-		}
+	if err != nil {
+		log.Println(err)
+		return 0, 0
 	}
-	return false
+	return metricCnt, uint64(rowCnt)
 }
