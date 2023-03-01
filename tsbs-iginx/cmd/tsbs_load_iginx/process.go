@@ -192,6 +192,7 @@ func parseMeasurementAndValues(measurement string, fields string) ([]string, []f
 }
 
 func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) {
+	beginTime := time.Now().UnixMilli()
 	batch := b.(*batch)
 
 	// Write the batch: try until backoff is not needed.
@@ -254,7 +255,6 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 		if err == nil {
 			break
 		}
-		log.Printf("err = %v, retry time = %d", err, i+1)
 	}
 	metricCnt := batch.metrics
 	rowCnt := batch.rows
@@ -262,9 +262,11 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 	// Return the batch buffer to the pool.
 	batch.buf.Reset()
 	bufPool.Put(batch.buf)
+	span := time.Now().UnixMilli() - beginTime
 	if err != nil {
-		log.Printf("after retry, we still has some error: %v\n", err)
+		log.Printf("[write stats] Span = %dms, Failure: %v\n", span, err)
 		return 0, 0
 	}
+	log.Printf("[write stats] Span = %dms, Success\n", span)
 	return metricCnt, uint64(rowCnt)
 }
