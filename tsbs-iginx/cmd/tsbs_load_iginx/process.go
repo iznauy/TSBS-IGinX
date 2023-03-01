@@ -15,8 +15,7 @@ import (
 // allows for testing
 var (
 	printFn              = fmt.Printf
-	connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
-	//connectionStringList = []string{"127.0.0.1:6888"}
+	connectionStringList = strings.Split("172.40.0.52:6888,172.40.0.53:6888,172.40.0.54:6888,172.40.0.55:6888", ",") //connectionStringList = []string{"127.0.0.1:6888"}
 
 	defaultTruck = "unknown"
 	defaultTagK  = []string{"fleet", "driver", "model", "device_version"}
