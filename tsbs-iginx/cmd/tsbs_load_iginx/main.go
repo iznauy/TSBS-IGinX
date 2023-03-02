@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -24,7 +25,7 @@ import (
 // Program option vars:
 var (
 	//session *client.Session
-	doAbortOnExist    bool
+	doAbortOnExist bool
 )
 
 // Global vars
@@ -80,7 +81,7 @@ func init() {
 type benchmark struct{}
 
 func (b *benchmark) GetDataSource() targets.DataSource {
-	return &fileDataSource{scanner: bufio.NewScanner(load.GetBufferedReader(config.FileName))}
+	return &fileDataSource{scanner: bufio.NewScanner(os.Stdin)}
 }
 
 func (b *benchmark) GetBatchFactory() targets.BatchFactory {
