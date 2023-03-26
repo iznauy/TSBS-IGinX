@@ -14,8 +14,9 @@ import (
 
 // allows for testing
 var (
-	printFn              = fmt.Printf
-	connectionStringList = strings.Split("172.40.0.52:6888,172.40.0.53:6888,172.40.0.54:6888,172.40.0.55:6888", ",") //connectionStringList = []string{"127.0.0.1:6888"}
+	printFn = fmt.Printf
+	//connectionStringList = strings.Split("172.40.0.52:6888,172.40.0.53:6888,172.40.0.54:6888,172.40.0.55:6888", ",")
+	connectionStringList = []string{"127.0.0.1:6888"}
 
 	defaultTruck = "unknown"
 	defaultTagK  = []string{"fleet", "driver", "model", "device_version"}
@@ -267,6 +268,6 @@ func (p *processor) ProcessBatch(b targets.Batch, doLoad bool) (uint64, uint64) 
 		log.Printf("[write stats] Span = %dms, Failure: %v\n", span, err)
 		return 0, 0
 	}
-	log.Printf("[write stats] Span = %dms, Success\n", span)
+	//log.Printf("[write stats] Span = %dms, Success\n", span)
 	return metricCnt, uint64(rowCnt)
 }

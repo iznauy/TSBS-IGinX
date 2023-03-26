@@ -2,6 +2,7 @@ package iginx
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -96,15 +97,23 @@ func (i *IoT) TrucksWithHighLoad(qi query.Query) {
 // StationaryTrucks finds all trucks that have low average velocity in a time window.
 func (i *IoT) StationaryTrucks(qi query.Query) {
 	// not all implemented limited by iginx sql grammar
-	interval := i.Interval.MustRandWindow(iot.StationaryDuration)
+	interval := i.Interval.MustRandWindow(iot.StationaryDuration * 144)
 
-	iginxql := fmt.Sprintf("SELECT AVG(velocity) FROM readings.*.%s where time >=%d and time <= %d",
-		i.GetRandomFleet(), interval.Start().Unix()*1000, interval.End().Unix()*1000)
+	trucks, _ := i.GetRandomTrucks(1)
+	iginxql := fmt.Sprintf("SELECT * FROM readings.%s.*.*.*.* where time >=%d and time <= %d",
+		formatName(trucks[0]), interval.Start().Unix()*1000, interval.End().Unix()*1000)
 
 	humanLabel := "Iginx stationary trucks"
-	humanDesc := fmt.Sprintf("%s: with low avg velocity in last 10 minutes", humanLabel)
+	humanDesc := fmt.Sprintf("%s: with low avg velocity in last 1000 minutes", humanLabel)
 
 	i.fillInQuery(qi, humanLabel, humanDesc, iginxql)
+}
+
+func formatName(name string) string {
+	parts := strings.Split(name, "_")
+	truck := parts[0]
+	index, _ := strconv.Atoi(parts[1])
+	return fmt.Sprintf("%s_%04d", truck, index)
 }
 
 // TrucksWithLongDrivingSessions finds all trucks that have not stopped at least 20 mins in the last 4 hours.
