@@ -94,7 +94,7 @@ func getRandomTrucks(numTrucks int, totalTrucks int) ([]string, error) {
 
 	truckNames := []string{}
 	for _, n := range randomNumbers {
-		truckNames = append(truckNames, fmt.Sprintf("truck_%d", n))
+		truckNames = append(truckNames, fmt.Sprintf("truck_%04d", n))
 	}
 
 	return truckNames, nil

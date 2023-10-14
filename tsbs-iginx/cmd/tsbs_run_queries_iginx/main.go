@@ -8,22 +8,28 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/blagojts/viper"
+	"github.com/iznauy/IGinX-client-go/client_v2"
 	"github.com/spf13/pflag"
-	"github.com/thulab/iginx-client-go/client"
 	"github.com/timescale/tsbs/internal/utils"
 	"github.com/timescale/tsbs/pkg/query"
 )
 
 // Global vars:
 var (
-	runner *query.BenchmarkRunner
+	runner               *query.BenchmarkRunner
+	connectionStringList = strings.Split("172.16.17.21:6777,172.16.17.22:6777,172.16.17.23:6777,172.16.17.24:6777", ",")
+	//connectionStringList = []string{"172.16.17.99:6888"}
 )
 
 // Parse args:
 func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	var config query.BenchmarkRunnerConfig
 	config.AddToFlagSet(pflag.CommandLine)
 
@@ -42,23 +48,46 @@ func init() {
 	runner = query.NewBenchmarkRunner(config)
 }
 
+func shuffle(nums []int) []int {
+	for i := len(nums); i > 0; i-- {
+		last := i - 1
+		idx := rand.Intn(i)
+		nums[last], nums[idx] = nums[idx], nums[last]
+	}
+	return nums
+}
+
 func main() {
 	runner.Run(&query.IginxPool, newProcessor)
 }
 
 type processor struct {
-	session *client.Session
+	session *client_v2.Session
 }
 
 func newProcessor() query.Processor { return &processor{} }
 
-func (p *processor) Init(workerNumber int) {
-	//if workerNumber%2 == 0 {
-	//	p.session = client.NewSession("172.16.17.21", "6888", "root", "root")
-	//} else if workerNumber%2 == 1 {
-	//	p.session = client.NewSession("172.16.17.23", "6888", "root", "root")
-	//}
-	p.session = client.NewSession("172.16.17.21", "6888", "root", "root")
+func (p *processor) Init(_ int) {
+	connectionStrings := ""
+	numbers := make([]int, 0, len(connectionStringList))
+	for i := 0; i < len(connectionStringList); i++ {
+		numbers = append(numbers, i)
+	}
+	numbers = shuffle(numbers)
+	for i := 0; i < len(numbers); i++ {
+		if i > 0 {
+			connectionStrings += ","
+		}
+		connectionStrings += connectionStringList[numbers[i]]
+	}
+
+	settings, err := client_v2.NewSessionSettings(connectionStrings)
+	if err != nil {
+		fmt.Println(err)
+		log.Fatal(err)
+	}
+
+	p.session = client_v2.NewSession(settings)
 	if err := p.session.Open(); err != nil {
 		log.Fatal(err)
 	}
@@ -75,30 +104,39 @@ func (p *processor) ProcessQuery(q query.Query, _ bool) ([]*query.Stat, error) {
 	return []*query.Stat{stat}, nil
 }
 
-type QueryResponseColumns struct {
-	Name string
-	Type string
-}
-
-type QueryResponse struct {
-	Query   string
-	Columns []QueryResponseColumns
-	Dataset []interface{}
-	Count   int
-	Error   string
-}
-
 // Do performs the action specified by the given Query. It uses fasthttp, and
 // tries to minimize heap allocations.
-func Do(q *query.Iginx, session *client.Session) (lag float64, err error) {
+func Do(q *query.Iginx, session *client_v2.Session) (lag float64, err error) {
 	sql := string(q.SqlQuery)
 	start := time.Now()
 	// execute sql
-	_, err = session.ExecuteSQL(sql)
-
+	cursor, err := session.ExecuteQuery(sql, 100)
 	if err != nil {
 		fmt.Println(err)
-		panic(err)
+		return 0, err
+	}
+
+	if _, err := cursor.GetFields(); err != nil {
+		fmt.Println(err)
+		return 0, err
+	}
+	for {
+		hasMore, err := cursor.HasMore()
+		if err != nil {
+			fmt.Println(err)
+			log.Fatal(err)
+		}
+		if !hasMore {
+			break
+		}
+		if _, err := cursor.NextRow(); err != nil {
+			fmt.Println(err)
+			return 0, err
+		}
+	}
+	if err := cursor.Close(); err != nil {
+		fmt.Println(err)
+		return 0, err
 	}
 
 	lag = float64(time.Since(start).Nanoseconds()) / 1e6 // milliseconds
